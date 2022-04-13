@@ -24,11 +24,11 @@ def build_model(cfg, gpu_id=None):
     """
     if torch.cuda.is_available():
         assert (
-            cfg.NUM_GPUS <= torch.cuda.device_count()
+                cfg.NUM_GPUS <= torch.cuda.device_count()
         ), "Cannot use more GPU devices than available"
     else:
         assert (
-            cfg.NUM_GPUS == 0
+                cfg.NUM_GPUS == 0
         ), "Cuda is not available. Please set `NUM_GPUS: 0 for running on CPUs."
 
     # Construct the model
@@ -43,7 +43,6 @@ def build_model(cfg, gpu_id=None):
             cur_device = gpu_id
         # Transfer the model to the current GPU device
         model = model.cuda(device=cur_device)
-
 
     # Use multi-process data parallel model in the multi-gpu setting
     if cfg.NUM_GPUS > 1:

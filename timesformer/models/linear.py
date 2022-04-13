@@ -4,6 +4,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn as nn
 
+
 class Linear(nn.Linear):
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         if torch.jit.is_scripting():

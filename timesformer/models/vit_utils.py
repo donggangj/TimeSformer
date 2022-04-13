@@ -1,16 +1,13 @@
 # Copyright 2020 Ross Wightman
 # Various utility functions
 
-import torch
-import torch.nn as nn
-from functools import partial
 import math
 import warnings
-import torch.nn.functional as F
-
-from timesformer.models.helpers import load_pretrained
-from .build import MODEL_REGISTRY
 from itertools import repeat
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from torch._six import container_abcs
 
 DEFAULT_CROP_PCT = 0.875
@@ -20,6 +17,7 @@ IMAGENET_INCEPTION_MEAN = (0.5, 0.5, 0.5)
 IMAGENET_INCEPTION_STD = (0.5, 0.5, 0.5)
 IMAGENET_DPN_MEAN = (124 / 255, 117 / 255, 104 / 255)
 IMAGENET_DPN_STD = tuple([1 / (.0167 * 255)] * 3)
+
 
 def _no_grad_trunc_normal_(tensor, mean, std, a, b):
     def norm_cdf(x):
@@ -54,6 +52,7 @@ def _no_grad_trunc_normal_(tensor, mean, std, a, b):
         tensor.clamp_(min=a, max=b)
         return tensor
 
+
 def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
     # type: (Tensor, float, float, float, float) -> Tensor
     r"""Fills the input Tensor with values drawn from a truncated
@@ -74,19 +73,25 @@ def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
     """
     return _no_grad_trunc_normal_(tensor, mean, std, a, b)
 
+
 # From PyTorch internals
 def _ntuple(n):
     def parse(x):
         if isinstance(x, container_abcs.Iterable):
             return x
         return tuple(repeat(x, n))
+
     return parse
+
+
 to_2tuple = _ntuple(2)
+
 
 # Calculate symmetric padding for a convolution
 def get_padding(kernel_size: int, stride: int = 1, dilation: int = 1, **_) -> int:
     padding = ((stride - 1) + dilation * (kernel_size - 1)) // 2
     return padding
+
 
 def get_padding_value(padding, kernel_size, **kwargs):
     dynamic = False
@@ -110,6 +115,7 @@ def get_padding_value(padding, kernel_size, **kwargs):
             padding = get_padding(kernel_size, **kwargs)
     return padding, dynamic
 
+
 # Calculate asymmetric TensorFlow-like 'SAME' padding for a convolution
 def get_same_padding(x: int, k: int, s: int, d: int):
     return max((int(math.ceil(x // s)) - 1) * s + (k - 1) * d + 1 - x, 0)
@@ -121,19 +127,21 @@ def is_static_pad(kernel_size: int, stride: int = 1, dilation: int = 1, **_):
 
 
 # Dynamically pad input x with 'SAME' padding for conv with specified args
-#def pad_same(x, k: List[int], s: List[int], d: List[int] = (1, 1), value: float = 0):
-def pad_same(x, k, s, d=(1, 1), value= 0):
+# def pad_same(x, k: List[int], s: List[int], d: List[int] = (1, 1), value: float = 0):
+def pad_same(x, k, s, d=(1, 1), value=0):
     ih, iw = x.size()[-2:]
     pad_h, pad_w = get_same_padding(ih, k[0], s[0], d[0]), get_same_padding(iw, k[1], s[1], d[1])
     if pad_h > 0 or pad_w > 0:
         x = F.pad(x, [pad_w // 2, pad_w - pad_w // 2, pad_h // 2, pad_h - pad_h // 2], value=value)
     return x
 
+
 def adaptive_pool_feat_mult(pool_type='avg'):
     if pool_type == 'catavgmax':
         return 2
     else:
         return 1
+
 
 def drop_path(x, drop_prob: float = 0., training: bool = False):
     """Drop paths (Stochastic Depth) per sample (when applied in main path of residual blocks).
@@ -152,9 +160,11 @@ def drop_path(x, drop_prob: float = 0., training: bool = False):
     output = x.div(keep_prob) * random_tensor
     return output
 
+
 class DropPath(nn.Module):
     """Drop paths (Stochastic Depth) per sample  (when applied in main path of residual blocks).
     """
+
     def __init__(self, drop_prob=None):
         super(DropPath, self).__init__()
         self.drop_prob = drop_prob

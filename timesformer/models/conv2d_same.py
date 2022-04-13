@@ -1,14 +1,16 @@
 # Copyright 2020 Ross Wightman
 # Conv2d w/ Same Padding
 
+import math
+from typing import List, Tuple
+from typing import Optional
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Tuple, Optional
 
-import math
-from typing import List, Tuple
-#from .padding import pad_same, get_padding_value
+
+# from .padding import pad_same, get_padding_value
 
 # Dynamically pad input x with 'SAME' padding for conv with specified args
 def pad_same(x, k: List[int], s: List[int], d: List[int] = (1, 1), value: float = 0):
@@ -18,9 +20,11 @@ def pad_same(x, k: List[int], s: List[int], d: List[int] = (1, 1), value: float 
         x = F.pad(x, [pad_w // 2, pad_w - pad_w // 2, pad_h // 2, pad_h - pad_h // 2], value=value)
     return x
 
+
 # Calculate asymmetric TensorFlow-like 'SAME' padding for a convolution
 def get_same_padding(x: int, k: int, s: int, d: int):
     return max((math.ceil(x / s) - 1) * s + (k - 1) * d + 1 - x, 0)
+
 
 def get_padding_value(padding, kernel_size, **kwargs) -> Tuple[Tuple, bool]:
     dynamic = False
@@ -43,6 +47,7 @@ def get_padding_value(padding, kernel_size, **kwargs) -> Tuple[Tuple, bool]:
             # Default to PyTorch style 'same'-ish symmetric padding
             padding = get_padding(kernel_size, **kwargs)
     return padding, dynamic
+
 
 def conv2d_same(
         x, weight: torch.Tensor, bias: Optional[torch.Tensor] = None, stride: Tuple[int, int] = (1, 1),

@@ -3,23 +3,23 @@
 # Modified model creation / weight loading / state_dict helpers
 
 import logging
-import os
 import math
+import os
 from collections import OrderedDict
 from copy import deepcopy
 from typing import Callable
 
 import torch
 import torch.nn as nn
-import torch.utils.model_zoo as model_zoo
 import torch.nn.functional as F
+import torch.utils.model_zoo as model_zoo
 
-from timesformer.models.features import FeatureListNet, FeatureDictNet, FeatureHookNet
 from timesformer.models.conv2d_same import Conv2dSame
+from timesformer.models.features import FeatureListNet, FeatureHookNet
 from timesformer.models.linear import Linear
 
-
 _logger = logging.getLogger(__name__)
+
 
 def load_state_dict(checkpoint_path, use_ema=False):
     if checkpoint_path and os.path.isfile(checkpoint_path):
@@ -97,7 +97,8 @@ def resume_checkpoint(model, checkpoint_path, optimizer=None, loss_scaler=None, 
         raise FileNotFoundError()
 
 
-def load_pretrained(model, cfg=None, num_classes=1000, in_chans=3, filter_fn=None, img_size=224, num_frames=8, num_patches=196, attention_type='divided_space_time', pretrained_model="", strict=True):
+def load_pretrained(model, cfg=None, num_classes=1000, in_chans=3, filter_fn=None, img_size=224, num_frames=8,
+                    num_patches=196, attention_type='divided_space_time', pretrained_model="", strict=True):
     if cfg is None:
         cfg = getattr(model, 'default_cfg')
     if cfg is None or 'url' not in cfg or not cfg['url']:
@@ -105,13 +106,12 @@ def load_pretrained(model, cfg=None, num_classes=1000, in_chans=3, filter_fn=Non
         return
 
     if len(pretrained_model) == 0:
-       state_dict = model_zoo.load_url(cfg['url'], progress=False, map_location='cpu')
+        state_dict = model_zoo.load_url(cfg['url'], progress=False, map_location='cpu')
     else:
-       try:
-         state_dict = load_state_dict(pretrained_model)['model']
-       except:
-         state_dict = load_state_dict(pretrained_model)
-
+        try:
+            state_dict = load_state_dict(pretrained_model)['model']
+        except:
+            state_dict = load_state_dict(pretrained_model)
 
     if filter_fn is not None:
         state_dict = filter_fn(state_dict)
@@ -150,7 +150,6 @@ def load_pretrained(model, cfg=None, num_classes=1000, in_chans=3, filter_fn=Non
             conv1_weight = conv1_weight.to(conv1_type)
             state_dict[conv1_name + '.weight'] = conv1_weight
 
-
     classifier_name = cfg['classifier']
     if num_classes == 1000 and cfg['num_classes'] == 1001:
         # special case for imagenet trained models with extra background class in pretrained weights
@@ -159,48 +158,49 @@ def load_pretrained(model, cfg=None, num_classes=1000, in_chans=3, filter_fn=Non
         classifier_bias = state_dict[classifier_name + '.bias']
         state_dict[classifier_name + '.bias'] = classifier_bias[1:]
     elif num_classes != state_dict[classifier_name + '.weight'].size(0):
-        #print('Removing the last fully connected layer due to dimensions mismatch ('+str(num_classes)+ ' != '+str(state_dict[classifier_name + '.weight'].size(0))+').', flush=True)
+        # print('Removing the last fully connected layer due to dimensions mismatch ('
+        #       '' + str(num_classes) + ' != ' + str(state_dict[classifier_name + '.weight'].size(0)) + ').',
+        #       flush=True)
         # completely discard fully connected for all other differences between pretrained and created model
         del state_dict[classifier_name + '.weight']
         del state_dict[classifier_name + '.bias']
         strict = False
 
-
-    ## Resizing the positional embeddings in case they don't match
+    # 1 Resizing the positional embeddings in case they don't match
     if num_patches + 1 != state_dict['pos_embed'].size(1):
         pos_embed = state_dict['pos_embed']
-        cls_pos_embed = pos_embed[0,0,:].unsqueeze(0).unsqueeze(1)
-        other_pos_embed = pos_embed[0,1:,:].unsqueeze(0).transpose(1, 2)
+        cls_pos_embed = pos_embed[0, 0, :].unsqueeze(0).unsqueeze(1)
+        other_pos_embed = pos_embed[0, 1:, :].unsqueeze(0).transpose(1, 2)
         new_pos_embed = F.interpolate(other_pos_embed, size=(num_patches), mode='nearest')
         new_pos_embed = new_pos_embed.transpose(1, 2)
         new_pos_embed = torch.cat((cls_pos_embed, new_pos_embed), 1)
         state_dict['pos_embed'] = new_pos_embed
 
-    ## Resizing time embeddings in case they don't match
+    # 1 Resizing time embeddings in case they don't match
     if 'time_embed' in state_dict and num_frames != state_dict['time_embed'].size(1):
         time_embed = state_dict['time_embed'].transpose(1, 2)
         new_time_embed = F.interpolate(time_embed, size=(num_frames), mode='nearest')
         state_dict['time_embed'] = new_time_embed.transpose(1, 2)
 
-    ## Initializing temporal attention
+    # 1 Initializing temporal attention
     if attention_type == 'divided_space_time':
         new_state_dict = state_dict.copy()
         for key in state_dict:
             if 'blocks' in key and 'attn' in key:
-                new_key = key.replace('attn','temporal_attn')
+                new_key = key.replace('attn', 'temporal_attn')
                 if not new_key in state_dict:
-                   new_state_dict[new_key] = state_dict[key]
+                    new_state_dict[new_key] = state_dict[key]
                 else:
-                   new_state_dict[new_key] = state_dict[new_key]
+                    new_state_dict[new_key] = state_dict[new_key]
             if 'blocks' in key and 'norm1' in key:
-                new_key = key.replace('norm1','temporal_norm1')
+                new_key = key.replace('norm1', 'temporal_norm1')
                 if not new_key in state_dict:
-                   new_state_dict[new_key] = state_dict[key]
+                    new_state_dict[new_key] = state_dict[key]
                 else:
-                   new_state_dict[new_key] = state_dict[new_key]
+                    new_state_dict[new_key] = state_dict[new_key]
         state_dict = new_state_dict
 
-    ## Loading the weights
+    # 1 Loading the weights
     model.load_state_dict(state_dict, strict=False)
 
 
