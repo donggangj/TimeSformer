@@ -786,6 +786,10 @@ _C.DEMO.COMMON_CLASS_NAMES = [
 # video will be played `_C.DEMO.SLOWMO` times slower than usual speed.
 _C.DEMO.SLOWMO = 1
 
+_C.ONNX = CfgNode()
+_C.ONNX.PATH = './TimeSformer.onnx'
+_C.ONNX.EXPORT = False
+
 def _assert_and_infer_cfg(cfg):
     # BN assertions.
     if cfg.BN.USE_PRECISE_STATS:

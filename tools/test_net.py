@@ -7,9 +7,6 @@ import os
 import pickle
 import torch
 from fvcore.common.file_io import PathManager
-import cv2
-from einops import rearrange, reduce, repeat
-import scipy.io
 
 import timesformer.utils.checkpoint as cu
 import timesformer.utils.distributed as du
@@ -164,6 +161,29 @@ def test(cfg):
         misc.log_model_info(model, cfg, use_train_input=False)
 
     cu.load_test_checkpoint(cfg, model)
+
+    if cfg.ONNX.EXPORT:
+        from os import makedirs
+        from os.path import dirname, abspath, exists
+        from torch.onnx import export as ex_to_onnx
+        onnx_path = cfg.ONNX.PATH
+        onnx_dir = dirname(onnx_path)
+        if abspath(onnx_dir) != abspath('./') and not exists(onnx_dir):
+            makedirs(onnx_dir)
+        model.eval()
+        dummy_video = torch.randn(2, 3, 8, 224, 224)
+        dummy_pred = model(dummy_video)
+        ex_to_onnx(model,
+                   dummy_video,
+                   onnx_path,
+                   export_params=True,
+                   verbose=True,
+                   opset_version=14,
+                   do_constant_folding=True,
+                   input_names=['video'],
+                   output_names=['pred_class'],
+                   dynamic_axes={'video': {0: 'batch_size'},
+                                 'pred_class': {0: 'batch_size'}})
 
     # Create video testing loaders.
     test_loader = loader.construct_loader(cfg, "test")

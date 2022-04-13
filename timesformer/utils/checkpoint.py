@@ -149,9 +149,9 @@ def inflate_weight(state_dict_2d, state_dict_3d):
         state_dict_inflated (OrderedDict): a dict of inflated parameters.
     """
     state_dict_inflated = OrderedDict()
-    #print(state_dict_2d.keys())
-    #print('----')
-    #print(state_dict_3d.keys())
+    # print(state_dict_2d.keys())
+    # print('----')
+    # print(state_dict_3d.keys())
     for k, v2d in state_dict_2d.items():
         assert k in state_dict_3d.keys()
         v3d = state_dict_3d[k]
@@ -162,17 +162,17 @@ def inflate_weight(state_dict_2d, state_dict_3d):
             )
             # Dimension need to be match.
             try:
-               assert v2d.shape[-2:] == v3d.shape[-2:]
-               assert v2d.shape[:2] == v3d.shape[:2]
-               v3d = (
-                   v2d.unsqueeze(2).repeat(1, 1, v3d.shape[2], 1, 1) / v3d.shape[2]
-               )
-            except: ### my modification
-               temp = (
-                   v2d.unsqueeze(2).repeat(1, 1, v3d.shape[2], 1, 1) / v3d.shape[2]
-               )
-               v3d = torch.zeros(v3d.shape)
-               v3d[:,:v2d.shape[1],:,:,:] = temp
+                assert v2d.shape[-2:] == v3d.shape[-2:]
+                assert v2d.shape[:2] == v3d.shape[:2]
+                v3d = (
+                        v2d.unsqueeze(2).repeat(1, 1, v3d.shape[2], 1, 1) / v3d.shape[2]
+                )
+            except:  ### my modification
+                temp = (
+                        v2d.unsqueeze(2).repeat(1, 1, v3d.shape[2], 1, 1) / v3d.shape[2]
+                )
+                v3d = torch.zeros(v3d.shape)
+                v3d[:, :v2d.shape[1], :, :, :] = temp
             ####################
 
         elif v2d.shape == v3d.shape:
@@ -188,14 +188,14 @@ def inflate_weight(state_dict_2d, state_dict_3d):
 
 
 def load_checkpoint(
-    path_to_checkpoint,
-    model,
-    data_parallel=True,
-    optimizer=None,
-    inflation=False,
-    convert_from_caffe2=False,
-    epoch_reset=False,
-    clear_name_pattern=(),
+        path_to_checkpoint,
+        model,
+        data_parallel=True,
+        optimizer=None,
+        inflation=False,
+        convert_from_caffe2=False,
+        epoch_reset=False,
+        clear_name_pattern=(),
 ):
     """
     Load the checkpoint from the given file. If inflation is True, inflate the
@@ -222,9 +222,9 @@ def load_checkpoint(
 
     # Account for the DDP wrapper in the multi-gpu setting.
     try:
-      ms = model.module if data_parallel else model
+        ms = model.module if data_parallel else model
     except:
-      ms = model
+        ms = model
 
     if convert_from_caffe2:
         with PathManager.open(path_to_checkpoint, "rb") as f:
@@ -241,17 +241,17 @@ def load_checkpoint(
                 # expand shape dims if they differ (eg for converting linear to conv params)
                 if len(c2_blob_shape) < len(model_blob_shape):
                     c2_blob_shape += (1,) * (
-                        len(model_blob_shape) - len(c2_blob_shape)
+                            len(model_blob_shape) - len(c2_blob_shape)
                     )
                     caffe2_checkpoint["blobs"][key] = np.reshape(
                         caffe2_checkpoint["blobs"][key], c2_blob_shape
                     )
                 # Load BN stats to Sub-BN.
                 if (
-                    len(model_blob_shape) == 1
-                    and len(c2_blob_shape) == 1
-                    and model_blob_shape[0] > c2_blob_shape[0]
-                    and model_blob_shape[0] % c2_blob_shape[0] == 0
+                        len(model_blob_shape) == 1
+                        and len(c2_blob_shape) == 1
+                        and model_blob_shape[0] > c2_blob_shape[0]
+                        and model_blob_shape[0] % c2_blob_shape[0] == 0
                 ):
                     caffe2_checkpoint["blobs"][key] = np.concatenate(
                         [caffe2_checkpoint["blobs"][key]]
@@ -282,7 +282,7 @@ def load_checkpoint(
                     )
             else:
                 if not any(
-                    prefix in key for prefix in ["momentum", "lr", "model_iter"]
+                        prefix in key for prefix in ["momentum", "lr", "model_iter"]
                 ):
                     logger.warn(
                         "!! {}: can not be converted, got {}".format(
@@ -300,7 +300,7 @@ def load_checkpoint(
         with PathManager.open(path_to_checkpoint, "rb") as f:
             checkpoint = torch.load(f, map_location="cpu")
         try:
-#        if True:
+            #        if True:
             model_state_dict_3d = (
                 model.module.state_dict() if data_parallel else model.state_dict()
             )
@@ -314,22 +314,22 @@ def load_checkpoint(
                 checkpoint["model_state"], model_state_dict_3d
             )
 
-#        except: ####### checkpoint from DEIT
-#            print(checkpoint.keys())
-#            model_state_dict_3d = model.state_dict()
-#            checkpoint["model_state"] = normal_to_sub_bn(
-##                checkpoint["model"], model_state_dict_3d
-#                checkpoint, model_state_dict_3d
-#            )
-#            keys = checkpoint['model_state'].keys()
-#            checkpoint['new_model_state'] = {}
-#            for key in keys:
-#                new_key = 'model.'+key
-#                checkpoint['new_model_state'][new_key] = checkpoint['model_state'][key]
-#            checkpoint['model_state'] = checkpoint['new_model_state']
-#            del checkpoint['new_model_state']
-#
-#        ############
+        #        except: ####### checkpoint from DEIT
+        #            print(checkpoint.keys())
+        #            model_state_dict_3d = model.state_dict()
+        #            checkpoint["model_state"] = normal_to_sub_bn(
+        #                checkpoint["model"], model_state_dict_3d
+        #                checkpoint, model_state_dict_3d
+        #            )
+        #            keys = checkpoint['model_state'].keys()
+        #            checkpoint['new_model_state'] = {}
+        #            for key in keys:
+        #                new_key = 'model.'+key
+        #                checkpoint['new_model_state'][new_key] = checkpoint['model_state'][key]
+        #            checkpoint['model_state'] = checkpoint['new_model_state']
+        #            del checkpoint['new_model_state']
+        #
+        #        ############
 
         if inflation:
             # Try to inflate the model.
@@ -360,9 +360,9 @@ def load_checkpoint(
             if 'model.time_embed' in pre_train_dict:
                 k = 'model.time_embed'
                 v = pre_train_dict[k]
-                v = v[0,:,:].unsqueeze(0).transpose(1,2)
+                v = v[0, :, :].unsqueeze(0).transpose(1, 2)
                 new_v = F.interpolate(v, size=(model_dict[k].size(1)), mode='nearest')
-                pre_train_dict[k] = new_v.transpose(1,2)
+                pre_train_dict[k] = new_v.transpose(1, 2)
             ###################
 
             # Match pre-trained weights that have same shape as current model.
@@ -371,11 +371,11 @@ def load_checkpoint(
                 for k, v in pre_train_dict.items()
                 if k in model_dict and v.size() == model_dict[k].size()
             }
-#            print(pre_train_dict.keys())
-#            print('-------------')
-#            print(model_dict.keys())
-#            print(pre_train_dict_match)
-#            print(xy)
+            #            print(pre_train_dict.keys())
+            #            print('-------------')
+            #            print(model_dict.keys())
+            #            print(pre_train_dict_match)
+            #            print(xy)
             # Weights that do not have match from the pre-trained model.
             not_load_layers = [
                 k
@@ -484,10 +484,10 @@ def normal_to_sub_bn(checkpoint_sd, model_sd):
             c2_blob_shape = checkpoint_sd[key].shape
 
             if (
-                len(model_blob_shape) == 1
-                and len(c2_blob_shape) == 1
-                and model_blob_shape[0] > c2_blob_shape[0]
-                and model_blob_shape[0] % c2_blob_shape[0] == 0
+                    len(model_blob_shape) == 1
+                    and len(c2_blob_shape) == 1
+                    and model_blob_shape[0] > c2_blob_shape[0]
+                    and model_blob_shape[0] % c2_blob_shape[0] == 0
             ):
                 before_shape = checkpoint_sd[key].shape
                 checkpoint_sd[key] = torch.cat(
