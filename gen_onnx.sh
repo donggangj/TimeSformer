@@ -1,0 +1,1 @@
+python tools/run_net.py --cfg configs/Kinetics/TimeSformer_divST_8x32_224_TEST.yaml DATA.PATH_TO_DATA_DIR datasets/kinetics/k600 TEST.CHECKPOINT_FILE_PATH ./trained_models/TimeSformer_divST_8x32_224_K600.pyth TRAIN.ENABLE False ONNX.EXPORT True
