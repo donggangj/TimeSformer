@@ -3,7 +3,10 @@
 """Helper functions for multigrid training."""
 
 import numpy as np
-from torch._six import int_classes as _int_classes
+try:
+    from torch._six import int_classes as _int_classes
+except ImportError:
+    _int_classes = int
 from torch.utils.data.sampler import Sampler
 
 

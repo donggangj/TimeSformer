@@ -8,13 +8,11 @@ import torch.nn as nn
 from timesformer.models.nonlocal_helper import Nonlocal
 from timesformer.models.operators import SE, Swish
 
-from torch.nn.modules.module import Module
 try:
     from torch.nn.modules.linear import _LinearWithBias
 except ImportError:
     from torch.nn.modules.linear import NonDynamicallyQuantizableLinear
 
-import numpy as np
 
 def get_trans_func(name):
     """

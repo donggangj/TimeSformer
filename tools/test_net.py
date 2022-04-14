@@ -2,9 +2,10 @@
 
 """Multi-view test a video classification model."""
 
-import numpy as np
 import os
 import pickle
+
+import numpy as np
 import torch
 from fvcore.common.file_io import PathManager
 
