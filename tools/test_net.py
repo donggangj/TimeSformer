@@ -173,6 +173,8 @@ def test(cfg):
             makedirs(onnx_dir)
         model.eval()
         dummy_video = torch.randn(2, 3, 8, 224, 224)
+        if cfg.NUM_GPUS and torch.cuda.is_available():
+            dummy_video = dummy_video.cuda()
         dummy_pred = model(dummy_video)
         ex_to_onnx(model,
                    dummy_video,
