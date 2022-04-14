@@ -8,7 +8,11 @@ from itertools import repeat
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch._six import container_abcs
+
+try:
+    from torch._six import container_abcs
+except ImportError:
+    from collections import abc as container_abcs
 
 DEFAULT_CROP_PCT = 0.875
 IMAGENET_DEFAULT_MEAN = (0.485, 0.456, 0.406)
